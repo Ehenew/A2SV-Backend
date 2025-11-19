@@ -16,7 +16,7 @@ This project provides basic CRUD (Create, Read, Update, Delete) operations for a
 
 2.  **Navigate to the API directory:**
     ```sh
-    cd task_manager_api
+    cd task_manager
     ```
 
 3.  **Install dependencies:**
@@ -24,7 +24,7 @@ This project provides basic CRUD (Create, Read, Update, Delete) operations for a
 
 4.  **Run the server:**
     ```sh
-    go run .
+    go run main.go
     ```
     The server will start and listen on `http://localhost:8080`.
 
