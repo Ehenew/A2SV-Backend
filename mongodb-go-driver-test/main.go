@@ -28,9 +28,9 @@ type Trainer struct {
 var collection *mongo.Collection
 
 func main() {
-	// =================================================================
+	// =======================================
 	// 1. ATLAS CONNECTION SETUP
-	// =================================================================
+	// =======================================
 	uri := "mongodb+srv://ehenewamogne:uMNQ7U5iLBLSdBAl@cluster0.y8khhhs.mongodb.net/?appName=Cluster0"
 
 	// Create a context with a 10-second timeout for the initial connection
@@ -56,9 +56,9 @@ func main() {
 	// Get a handle to the 'test' database and 'trainers' collection
 	collection = client.Database("test").Collection("trainers")
 
-	// =================================================================
+	// =======================================
 	// 2. CRUD OPERATIONS EXECUTION
-	// =================================================================
+	// =======================================
 	fmt.Println("\n--- Starting CRUD Operations ---")
 
 	// Ensure a clean slate for the demo
