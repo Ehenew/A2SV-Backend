@@ -1,62 +1,147 @@
 package data
 
 import (
-	"a2sv-backend/task_manager/models"
+	"context"
 	"errors"
-	"time"
+	"log"
+	"os"
+
+	"a2sv-backend/task_manager/models"
+
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Mock data for tasks
-var tasks = []models.Task{
-	{ID: "1", Title: "Task 1", Description: "First task", DueDate: time.Now(), Status: "Pending"},
-	{ID: "2", Title: "Task 2", Description: "Second task", DueDate: time.Now().AddDate(0, 0, 1), Status: "In Progress"},
-	{ID: "3", Title: "Task 3", Description: "Third task", DueDate: time.Now().AddDate(0, 0, 2), Status: "Completed"},
+var collection *mongo.Collection
+
+// InitMongoDB initializes the MongoDB connection
+func InitMongoDB() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
+
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		log.Fatal("You must set your 'MONGODB_URI' environmental variable. See\n\t https://www.mongodb.com/docs/drivers/go/current/usage-examples/#environment-variable")
+	}
+
+	clientOptions := options.Client().ApplyURI(uri)
+	
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = client.Ping(context.TODO(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("Connected to MongoDB Atlas!")
+	collection = client.Database("task_manager").Collection("tasks")
 }
 
-func GetAllTasks() []models.Task {
-	return tasks
+// GetAllTasks retrieves all tasks from the database
+func GetAllTasks() ([]models.Task, error) {
+	var tasks []models.Task
+	
+	cursor, err := collection.Find(context.TODO(), bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.TODO())
+
+	for cursor.Next(context.TODO()) {
+		var task models.Task
+		if err := cursor.Decode(&task); err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }
 
+// GetTaskByID retrieves a task by its ID
 func GetTaskByID(id string) (*models.Task, error) {
-	for _, task := range tasks {
-		if task.ID == id {
-			return &task, nil
-		}
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, errors.New("invalid task ID")
 	}
-	return nil, errors.New("task not found")
+
+	var task models.Task
+	err = collection.FindOne(context.TODO(), bson.M{"_id": objID}).Decode(&task)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, errors.New("task not found")
+		}
+		return nil, err
+	}
+	return &task, nil
 }
 
-func AddTask(newTask models.Task) {
-	tasks = append(tasks, newTask)
+// AddTask adds a new task to the database
+func AddTask(newTask models.Task) error {
+	_, err := collection.InsertOne(context.TODO(), newTask)
+	return err
 }
 
+// UpdateTask updates an existing task
 func UpdateTask(id string, updatedTask models.Task) error {
-	for i, task := range tasks {
-		if task.ID == id {
-			if updatedTask.Title != "" {
-				tasks[i].Title = updatedTask.Title
-			}
-			if updatedTask.Description != "" {
-				tasks[i].Description = updatedTask.Description
-			}
-			if !updatedTask.DueDate.IsZero() {
-				tasks[i].DueDate = updatedTask.DueDate
-			}
-			if updatedTask.Status != "" {
-				tasks[i].Status = updatedTask.Status
-			}
-			return nil
-		}
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return errors.New("invalid task ID")
 	}
-	return errors.New("task not found")
+
+	update := bson.M{}
+	if updatedTask.Title != "" {
+		update["title"] = updatedTask.Title
+	}
+	if updatedTask.Description != "" {
+		update["description"] = updatedTask.Description
+	}
+	if !updatedTask.DueDate.IsZero() {
+		update["duedate"] = updatedTask.DueDate
+	}
+	if updatedTask.Status != "" {
+		update["status"] = updatedTask.Status
+	}
+
+	if len(update) == 0 {
+		return nil
+	}
+
+	result, err := collection.UpdateOne(context.TODO(), bson.M{"_id": objID}, bson.M{"$set": update})
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return errors.New("task not found")
+	}
+	return nil
 }
 
+// DeleteTask deletes a task by its ID
 func DeleteTask(id string) error {
-	for i, task := range tasks {
-		if task.ID == id {
-			tasks = append(tasks[:i], tasks[i+1:]...)
-			return nil
-		}
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return errors.New("invalid task ID")
 	}
-	return errors.New("task not found")
+
+	result, err := collection.DeleteOne(context.TODO(), bson.M{"_id": objID})
+	if err != nil {
+		return err
+	}
+
+	if result.DeletedCount == 0 {
+		return errors.New("task not found")
+	}
+	return nil
 }

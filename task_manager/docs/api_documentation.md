@@ -1,14 +1,13 @@
 # Task Manager API
 
-A simple RESTful API for managing tasks, built with Go and the Gin framework.
+A simple RESTful API for managing tasks, built with Go, the Gin framework, and MongoDB.
 
-This project provides basic CRUD (Create, Read, Update, Delete) operations for a task management system. It is intended as a simple demonstration of building a web service in Go.
-
-**Note:** This API uses an in-memory data store. All tasks will be reset every time the application is restarted.
+This project provides basic CRUD (Create, Read, Update, Delete) operations for a task management system, with data persistence provided by MongoDB.
 
 ## Prerequisites
 
 - [Go](https://golang.org/dl/) (version 1.18 or newer)
+- [MongoDB](https://www.mongodb.com/try/download/community) (running locally on port 27017)
 
 ## Getting Started
 
@@ -19,10 +18,15 @@ This project provides basic CRUD (Create, Read, Update, Delete) operations for a
     cd task_manager
     ```
 
-3.  **Install dependencies:**
-    Go will automatically handle dependencies when you build or run the project.
+3.  **Ensure MongoDB is running:**
+    Start your local MongoDB instance. The application expects it to be available at `mongodb://localhost:27017`.
 
-4.  **Run the server:**
+4.  **Install dependencies:**
+    ```sh
+    go mod tidy
+    ```
+
+5.  **Run the server:**
     ```sh
     go run main.go
     ```
@@ -49,7 +53,7 @@ The following endpoints are available:
 -   **Description:** Retrieves a single task by its ID.
 -   **Example `curl`:**
     ```sh
-    curl http://localhost:8080/tasks/1
+    curl http://localhost:8080/tasks/6554c7f8a1b2c3d4e5f6g7h8
     ```
 
 ### Add a New Task
@@ -61,7 +65,6 @@ The following endpoints are available:
 -   **Body (raw JSON):**
     ```json
     {
-        "id": "4",
         "title": "New Task from API",
         "description": "A task created via POST request.",
         "duedate": "2025-12-01T15:00:00Z",
@@ -72,7 +75,7 @@ The following endpoints are available:
     ```sh
     curl -X POST http://localhost:8080/tasks \
     -H "Content-Type: application/json" \
-    -d '{"id": "4", "title": "New Task", "description": "A new task", "duedate": "2025-12-01T15:00:00Z", "status": "Pending"}'
+    -d '{"title": "New Task", "description": "A new task", "duedate": "2025-12-01T15:00:00Z", "status": "Pending"}'
     ```
 
 ### Update a Task
@@ -90,7 +93,7 @@ The following endpoints are available:
     ```
 -   **Example `curl`:**
     ```sh
-    curl -X PUT http://localhost:8080/tasks/1 \
+    curl -X PUT http://localhost:8080/tasks/6554c7f8a1b2c3d4e5f6g7h8 \
     -H "Content-Type: application/json" \
     -d '{"title": "Updated Title"}'
     ```
@@ -102,5 +105,5 @@ The following endpoints are available:
 -   **Description:** Deletes a task by its ID.
 -   **Example `curl`:**
     ```sh
-    curl -X DELETE http://localhost:8080/tasks/1
+    curl -X DELETE http://localhost:8080/tasks/6554c7f8a1b2c3d4e5f6g7h8
     ```

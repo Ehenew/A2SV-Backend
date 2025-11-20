@@ -8,50 +8,82 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetTasks(ctx *gin.Context) {
-	tasks := data.GetAllTasks()
-	ctx.IndentedJSON(http.StatusOK, gin.H{"tasks": tasks})
-}
-
-func GetTask(ctx *gin.Context) {
-	id := ctx.Param("id")
-	task, err := data.GetTaskByID(id)
+// GetTasks handles the GET request to retrieve all tasks
+func GetTasks(c *gin.Context) {
+	tasks, err := data.GetAllTasks()
 	if err != nil {
-		ctx.IndentedJSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving tasks"})
 		return
 	}
-	ctx.IndentedJSON(http.StatusOK, task)
+	c.IndentedJSON(http.StatusOK, tasks)
 }
 
-func AddTask(ctx *gin.Context) {
+// GetTaskByID handles the GET request to retrieve a specific task by ID
+func GetTaskByID(c *gin.Context) {
+	id := c.Param("id")
+	task, err := data.GetTaskByID(id)
+
+	if err != nil {
+		if err.Error() == "task not found" {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+		} else {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid ID format"})
+		}
+		return
+	}
+	c.IndentedJSON(http.StatusOK, task)
+}
+
+// AddTask handles the POST request to create a new task
+func AddTask(c *gin.Context) {
 	var newTask models.Task
-	if err := ctx.ShouldBindJSON(&newTask); err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	if err := c.BindJSON(&newTask); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
 		return
 	}
-	data.AddTask(newTask)
-	ctx.IndentedJSON(http.StatusCreated, gin.H{"message": "Task Created"})
+
+	if err := data.AddTask(newTask); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error creating task"})
+		return
+	}
+	c.IndentedJSON(http.StatusCreated, newTask)
 }
 
-func UpdateTask(ctx *gin.Context) {
-	id := ctx.Param("id")
+// UpdateTask handles the PUT request to update an existing task
+func UpdateTask(c *gin.Context) {
+	id := c.Param("id")
 	var updatedTask models.Task
-	if err := ctx.ShouldBindJSON(&updatedTask); err != nil {
-		ctx.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	if err := c.BindJSON(&updatedTask); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
 		return
 	}
-	if err := data.UpdateTask(id, updatedTask); err != nil {
-		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+
+	err := data.UpdateTask(id, updatedTask)
+	if err != nil {
+		if err.Error() == "task not found" {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+		} else {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid ID format or update error"})
+		}
 		return
 	}
-	ctx.IndentedJSON(http.StatusOK, gin.H{"message": "Task Updated"})
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "Task updated"})
 }
 
-func DeleteTask(ctx *gin.Context) {
-	id := ctx.Param("id")
-	if err := data.DeleteTask(id); err != nil {
-		ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+// DeleteTask handles the DELETE request to remove a task
+func DeleteTask(c *gin.Context) {
+	id := c.Param("id")
+	err := data.DeleteTask(id)
+
+	if err != nil {
+		if err.Error() == "task not found" {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Task not found"})
+		} else {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid ID format or delete error"})
+		}
 		return
 	}
-	ctx.IndentedJSON(http.StatusOK, gin.H{"message": "Task removed"})
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "Task deleted"})
 }
