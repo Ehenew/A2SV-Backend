@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"log"
-	"os"
 
 	"a2sv-backend/task_manager/models"
 
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,16 +15,9 @@ import (
 
 var collection *mongo.Collection
 
-// InitMongoDB initializes the MongoDB connection
+// initializing the MongoDB connection
 func InitMongoDB() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
-	}
-
-	uri := os.Getenv("MONGODB_URI")
-	if uri == "" {
-		log.Fatal("You must set your 'MONGODB_URI' environmental variable. See\n\t https://www.mongodb.com/docs/drivers/go/current/usage-examples/#environment-variable")
-	}
+	uri := "mongodb+srv://ehenewamogne:uMNQ7U5iLBLSdBAl@cluster0.y8khhhs.mongodb.net/?appName=Cluster0"
 
 	clientOptions := options.Client().ApplyURI(uri)
 	
@@ -44,10 +35,10 @@ func InitMongoDB() {
 	collection = client.Database("task_manager").Collection("tasks")
 }
 
-// GetAllTasks retrieves all tasks from the database
+// GetAllTasks
 func GetAllTasks() ([]models.Task, error) {
 	var tasks []models.Task
-	
+
 	cursor, err := collection.Find(context.TODO(), bson.D{})
 	if err != nil {
 		return nil, err
@@ -68,7 +59,7 @@ func GetAllTasks() ([]models.Task, error) {
 	return tasks, nil
 }
 
-// GetTaskByID retrieves a task by its ID
+// GetTaskByID
 func GetTaskByID(id string) (*models.Task, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -86,13 +77,16 @@ func GetTaskByID(id string) (*models.Task, error) {
 	return &task, nil
 }
 
-// AddTask adds a new task to the database
-func AddTask(newTask models.Task) error {
-	_, err := collection.InsertOne(context.TODO(), newTask)
-	return err
+// add a new task to the database
+func AddTask(newTask models.Task) (primitive.ObjectID, error) {
+	result, err := collection.InsertOne(context.TODO(), newTask)
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+	return result.InsertedID.(primitive.ObjectID), nil
 }
 
-// UpdateTask updates an existing task
+// UpdateTask
 func UpdateTask(id string, updatedTask models.Task) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -128,7 +122,7 @@ func UpdateTask(id string, updatedTask models.Task) error {
 	return nil
 }
 
-// DeleteTask deletes a task by its ID
+// DeleteTask
 func DeleteTask(id string) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetTasks handles the GET request to retrieve all tasks
+// GetTasks
 func GetTasks(c *gin.Context) {
 	tasks, err := data.GetAllTasks()
 	if err != nil {
@@ -18,7 +18,7 @@ func GetTasks(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, tasks)
 }
 
-// GetTaskByID handles the GET request to retrieve a specific task by ID
+// GetTaskByID 
 func GetTaskByID(c *gin.Context) {
 	id := c.Param("id")
 	task, err := data.GetTaskByID(id)
@@ -34,7 +34,7 @@ func GetTaskByID(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, task)
 }
 
-// AddTask handles the POST request to create a new task
+// AddTask with POST
 func AddTask(c *gin.Context) {
 	var newTask models.Task
 
@@ -43,14 +43,16 @@ func AddTask(c *gin.Context) {
 		return
 	}
 
-	if err := data.AddTask(newTask); err != nil {
+	id, err := data.AddTask(newTask)
+	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error creating task"})
 		return
 	}
+	newTask.ID = id
 	c.IndentedJSON(http.StatusCreated, newTask)
 }
 
-// UpdateTask handles the PUT request to update an existing task
+// UpdateTask 
 func UpdateTask(c *gin.Context) {
 	id := c.Param("id")
 	var updatedTask models.Task
@@ -72,7 +74,7 @@ func UpdateTask(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "Task updated"})
 }
 
-// DeleteTask handles the DELETE request to remove a task
+// DeleteTask
 func DeleteTask(c *gin.Context) {
 	id := c.Param("id")
 	err := data.DeleteTask(id)
