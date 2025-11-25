@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"os"
 
 	"a2sv-backend/task_manager/models"
 
@@ -17,7 +18,10 @@ var collection *mongo.Collection
 
 // initializing the MongoDB connection
 func InitMongoDB() {
-	uri := "mongodb+srv://ehenewamogne:uMNQ7U5iLBLSdBAl@cluster0.y8khhhs.mongodb.net/?appName=Cluster0"
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		log.Fatal("MONGODB_URI is not set in environment")
+	}
 
 	clientOptions := options.Client().ApplyURI(uri)
 	
